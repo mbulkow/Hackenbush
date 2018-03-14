@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package hackenbush;
+package my.hackenbush;
 
 import java.util.LinkedList;
 
@@ -39,14 +39,45 @@ import java.util.LinkedList;
  */
 public class Hackenbush {
     
+    /**
+     * The number of nodes in the hackenbush game.
+     */
     protected int size;
+    
+    /**
+     * An adjacency matrix for red edges. Must be symmetric, contain only 
+     * nonnegative integers.
+     */
     protected int[][] redGraph;
+    
+    /**
+     * An adjacency matrix for blue edges. Must be symmetric, contain only
+     * nonnegative integers.
+     */
     protected int[][] blueGraph;
+    
+    /**
+     * An array containing the height of each node (i.e the length of the
+     * shortest path to the ground). If the node is disconnected, its height
+     * is listed as size+1.
+     */
     protected int[] nodeHeights;
+    
+    /**
+     * The maximum height among nodes that are still connected to the ground.
+     * Should be nonnegative and less than size.
+     */
     protected int maxHeight;
     
+    /**
+     * An array of linked lists, of length maxHeight, where the ith list 
+     * contains the indices of all nodes of height i.
+     */
     protected LinkedList<Integer>[] nodesByHeight;
-    
+    /*
+    TODO Figure out whether an ArrayList would work better. Optimize usage for
+    chosen data structure.
+    */
     
     /**
      * Constructor.
@@ -99,6 +130,11 @@ public class Hackenbush {
      * Updates nodeHeights and nodesByHeight.
      */
     private void calculateHeights(){
+        /*
+        Peforms a breadth-first search of the graph, starting at the root
+        to calculate the height of each node. It is stored both in nodeHeights,
+        an array of integers, and in nodesByHeight, an array of lists.
+        */
         nodeHeights = new int[size];
         for(int i = 0; i<size; i++){
             nodeHeights[i] = size + 1;
@@ -262,10 +298,15 @@ public class Hackenbush {
     /**
      * Evaluates the current graph (the union of red and blue edges) 
      * to see if it consists of a rooted tree. Here a tree is a connected graph,
-     * including the vertex at index 0, which contains no cycles.
+     * including the vertex at index 0, which contains no cycles. Singleton
+     * vertices are allowed to be disconnected.
      * @return "true" if the graph is a tree, "false" otherwise
      */
     public boolean isTree(){
+        /*
+        Peforms a breadth-first search of the graph to determine that each node
+        is hit at most once, ensuring there are no cycles in the graph.
+        */
         if(size == 0){
             return false;
         }
