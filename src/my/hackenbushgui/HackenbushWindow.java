@@ -27,12 +27,16 @@ package my.hackenbushgui;
 import my.hackenbush.Hackentree;
 import my.hackenbush.Hackenbush;
 import java.awt.*;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTextArea;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.LinkedList;
+import javax.swing.BorderFactory;
+import javax.swing.JFrame;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 
 /**
  * This class launches a window which allows a user to create Red-Blue 
@@ -43,9 +47,9 @@ import java.awt.event.ActionListener;
  */
 public class HackenbushWindow implements ActionListener{
     
-    private int width;
-    private int height;
-    private int border = 20;
+    private final int width;
+    private final int height;
+    private final int border = 20;
     private Hackenbush bush;
     private HackenbushDisplayPanel hackenbushDisplay;
 
@@ -55,7 +59,12 @@ public class HackenbushWindow implements ActionListener{
     
     private JTextArea redText;
     private JTextArea blueText;
-    public JLabel message;
+    public JTextArea messages;
+    private final String[] colorStrings = {"Red", "Blue"};
+    private JComboBox moveColor;
+    private JComboBox edgeStart;
+    private JComboBox edgeEnd;
+    private Button move;
     
     /**
      * Constructor
@@ -70,13 +79,26 @@ public class HackenbushWindow implements ActionListener{
     }
     
     /**
-     * Performs an action based on corresponding button press.
+     * Performs an action based on corresponding button press or comboBox
+     * selection.
      * @param e The action it is responding to.
      */
     @Override
     public void actionPerformed(ActionEvent e){
-        if("updateGraph".equals(e.getActionCommand())){
-            updateGraph();
+        // TODO switch?
+        if("createGame".equals(e.getActionCommand())){
+            createNewGameData();
+            updateGUI();
+        }
+        else if("updateStartChoices".equals(e.getActionCommand())){
+            updateStartChoices();
+            updateEndChoices();
+        }
+        else if("updateEndChoices".equals(e.getActionCommand())){
+            updateEndChoices();
+        }
+        else if("move".equals(e.getActionCommand())){
+            userMove();
         }
     }
     
@@ -87,7 +109,9 @@ public class HackenbushWindow implements ActionListener{
     private void design(){
         bush = new Hackenbush(size, redEdges, blueEdges);
         hackenbushDisplay = new HackenbushDisplayPanel(
-                bush, width/2, height - 2 * border);        
+                bush, width/2, height - 2 * border);    
+        hackenbushDisplay.setBorder(
+                BorderFactory.createLineBorder(Color.black));
         
         JPanel controlPanel = designControlPanel();
         
@@ -95,61 +119,167 @@ public class HackenbushWindow implements ActionListener{
         container.add(controlPanel);
         container.add(hackenbushDisplay);
         
-        JFrame j = new JFrame();
+        JFrame j = new JFrame("Hackenbush"); //TODO
         j.setSize(width + border,height + border);
         j.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         j.setVisible(true); 
         j.add(container);
     }
     
+    
+    // TODO this is only called once, does it really need its own function?
     /**
      * Creates a control panel allowing users to update the current game.
      * @return JPanel to display in HackenbushWindow.
      */
     private JPanel designControlPanel(){
-        JLabel redLabel = new JLabel("Enter adjacency matrix for red edges:");
-        redText = new JTextArea(edgesToText(redEdges),10,20);
-        redText.setLineWrap(true);
+        JLabel redLabel = new JLabel("Red edges:");
+        redText = new JTextArea(edgesToText(redEdges),12,20); //TODO
+        redText.setBorder(BorderFactory.createLineBorder(Color.black));
         
-        JLabel blueLabel = new JLabel("Enter adjacency matrix for blue edges:");
-        blueText = new JTextArea(edgesToText(blueEdges),10,20);
-        blueText.setLineWrap(true);
+        JLabel blueLabel = new JLabel("Blue edges:");
+        blueText = new JTextArea(edgesToText(blueEdges),12,20); //TODO
+        blueText.setBorder(BorderFactory.createLineBorder(Color.black));
         
-        Button updateGraph = new Button("Update graph");
-        updateGraph.setActionCommand("updateGraph");
+        Button updateGraph = new Button("Create game");
+        updateGraph.setActionCommand("createGame");
         updateGraph.addActionListener(this);
         
-        message = new JLabel("Messages appear here.");
+        JLabel makeMove = new JLabel("Make a move: ");
+        
+        moveColor = new JComboBox(colorStrings);
+        moveColor.setActionCommand("updateStartChoices");
+        moveColor.addActionListener(this);
+        
+        edgeStart = new JComboBox();
+        edgeStart.setActionCommand("updateEndChoices");
+        edgeStart.addActionListener(this);
+        
+        edgeEnd = new JComboBox();
+        
+        move = new Button("Move");
+        move.setActionCommand("move");
+        move.addActionListener(this);
+        
+        updateStartChoices();
+        updateEndChoices();
+        
+        messages = new JTextArea("Messages appear here.",4, 30); //TODO
+        messages.setEditable(false);
+        
+        JScrollPane messageScroll = new JScrollPane(messages, 
+                JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, 
+                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         
         JPanel controlPanel = new JPanel(new GridBagLayout());
         
+        // TODO yiiiiikes
+        
         GridBagConstraints c = new GridBagConstraints();
-        c.weightx = 1;
-        c.weighty = 0.05;
+        c.weightx = .2;
+        c.weighty = 0.3;
+        c.gridwidth = 1;
         c.gridx = 0;
         c.gridy = 0;        
         controlPanel.add(redLabel,c);
-        c.weighty = 0.3;
-        c.gridx = 0;
-        c.gridy = 1;
+        c.weightx = 0.8;
+        c.gridwidth = 4;
+        c.gridx = 1;
+        c.gridy = 0;
         controlPanel.add(redText,c);
-        c.weighty = 0.05;
+        c.weightx = 0.2;
+        c.gridwidth = 1;
         c.gridx = 0;
         c.gridy = 2; 
         controlPanel.add(blueLabel,c);
-        c.weighty = 0.3;
-        c.gridx = 0;
-        c.gridy = 3; 
+        c.weightx = 0.8;
+        c.gridwidth = 4;
+        c.gridx = 1;
+        c.gridy = 2; 
         controlPanel.add(blueText,c);
+        c.weightx = 0.2;
         c.weighty = 0.1;
-        c.gridx = 0;
+        c.gridwidth = 1;
+        c.gridx = 4;
         c.gridy = 4;
         controlPanel.add(updateGraph,c);
         c.gridx = 0;
         c.gridy = 5;
-        controlPanel.add(message,c);
+        controlPanel.add(makeMove,c);
+        c.gridx = 1;
+        c.gridy = 5;
+        controlPanel.add(moveColor,c);
+        c.gridx = 2;
+        c.gridy = 5;
+        controlPanel.add(edgeStart,c);
+        c.gridx = 3;
+        c.gridy = 5;
+        controlPanel.add(edgeEnd,c);
+        c.gridx = 4;
+        c.gridy = 5;
+        controlPanel.add(move,c);
+        c.gridwidth = 5;
+        c.gridx = 0;
+        c.gridy = 6;
+        controlPanel.add(messageScroll,c);
         
         return controlPanel;
+    }
+    
+    /**
+     * Given a color, finds all nodes at which that color can move.
+     * @param color A character representing the current color; 'r' for red or 
+     * 'b' for blue.
+     * @return An array of available nodes (represented by Integers between 0 
+     * and size-1, inclusive).
+     */
+    private Integer[] availableMoves(char color){
+        LinkedList<Integer> availableMoves = new LinkedList<>();
+        int[][] edges = bush.getEdges(color);
+        for(int i = 0; i < size; i++){
+            for(int j = 0; j < size; j++){
+                if(edges[i][j] > 0){
+                    availableMoves.add(i);
+                    break;
+                }
+            }
+        }
+        return availableMoves.toArray(new Integer[availableMoves.size()]);
+    }
+    
+    /**
+     * Given a color and node, finds all color-adjacent moves.
+     * @param color A character representing the current color; 'r' for red or 
+     * 'b' for blue.
+     * @return An array of available nodes (represented by Integers between 0 
+     * and size-1, inclusive).
+     */
+    private Integer[] availableMovesAtNode(char color, int node){
+        LinkedList<Integer> availableMoves = new LinkedList<>();
+        int[][] edges = bush.getEdges(color);
+        for(int i = 0; i < size; i++){
+            if(edges[node][i]>0){
+                availableMoves.add(i);
+            }
+        }
+        return availableMoves.toArray(new Integer[availableMoves.size()]);
+    }
+    
+    /**
+     * Updates data to reflect current GUI selections.
+     */
+    private void createNewGameData(){
+        redEdges = textToEdges(redText.getText());
+        blueEdges = textToEdges(blueText.getText());
+        if(redEdges == null || blueEdges == null) return;
+        size = redEdges.length;
+        if(size != blueEdges.length){
+            messages.setText("Matrices must be the same size.");
+        }
+        else{
+            bush = new Hackenbush(size, redEdges, blueEdges);
+            hackenbushDisplay.hackenbush = bush;
+        }
     }
     
     /**
@@ -179,18 +309,38 @@ public class HackenbushWindow implements ActionListener{
     }
     
     /**
+     * Makes a move on the Hackenbush object based on current selections.
+     * Updates GUI accordingly.
+     */
+    private void userMove(){
+        // TODO protect against bad selections
+        if(moveColor.getSelectedItem() == null ||
+                edgeStart.getSelectedItem() == null ||
+                edgeEnd.getSelectedItem() == null){
+            messages.setText(messages.getText() + "\n Bad move.");
+            return;
+        }
+        char color  = stringToColor((String) moveColor.getSelectedItem());
+        int start = (int) edgeStart.getSelectedItem();
+        int end = (int) edgeEnd.getSelectedItem();
+        String moveMessage = bush.move(color, start, end);
+        messages.setText(messages.getText() + "\n" + moveMessage);
+        updateGUI();
+    }
+    
+    /**
      * Prints information about the current state of the game, including the 
      * game's current value if the current graph is a rooted tree.
      */
     private void printState(){
         if(bush.isTree()){
             Hackentree hackentree = new Hackentree(bush);
-            String value = hackentree.gameState('r');
-            message.setText("Current game value is "+value);
+            String gameState = hackentree.gameState('r');
+            messages.setText(messages.getText() + "\n" + gameState);
         }
         else{
             String gameState = bush.gameState('r');
-            message.setText(gameState);
+            messages.setText(messages.getText() + "\n" + gameState);
         }
     }    
     
@@ -217,16 +367,16 @@ public class HackenbushWindow implements ActionListener{
         for(int i=0; i<text.length(); i++){
             currentChar = text.charAt(i);
             if(row >= currentSize || col >= currentSize){
-                message.setText("Improper input.");
+                messages.setText("Improper input.");
                 return null;
             }
             if(currentChar == '\n'){
                 if(currentElt.isEmpty()){
-                    message.setText("All elements must be nonempty.");
+                    messages.setText("All elements must be nonempty.");
                     return null;
                 }
                 if(col < currentSize-1){
-                    message.setText("Matrix must be square.");
+                    messages.setText("Matrix must be square.");
                     return null;
                 }
                 edges[row][col] = Integer.parseInt(currentElt);
@@ -236,7 +386,7 @@ public class HackenbushWindow implements ActionListener{
             }
             else if(currentChar == ' '){
                 if(currentElt.isEmpty()){
-                    message.setText("All elements must be nonempty.");
+                    messages.setText("All elements must be nonempty.");
                     return null;
                 }
                 edges[row][col] = Integer.parseInt(currentElt);
@@ -245,7 +395,8 @@ public class HackenbushWindow implements ActionListener{
             }
             else{
                 if(Character.digit(currentChar, 10)<0){
-                    message.setText("All entries must be non-negative integers.");
+                    messages.setText("All entries must be non-negative "
+                            + "integers.");
                     return null;
                 }
                 currentElt += currentChar;
@@ -254,29 +405,72 @@ public class HackenbushWindow implements ActionListener{
         if(!currentElt.isEmpty()){
             edges[row][col] = Integer.parseInt(currentElt);
         }
+        messages.setText("Game created.");
         return edges;
     }
     
     /**
-     * Uses the current contents of the text fields to update the graph 
-     * displaying the current game. Updates message with either a relevant error
-     * message or with a current description of the state of the game.
+     * Converts a string describing the name of a color to the associated 
+     * character (i.e. the lowercase version of the first letter)
+     * @param colorString A string containing the color name.
+     * @return The first letter of the color name, in lowercase.
      */
-    public void updateGraph(){
-        redEdges = textToEdges(redText.getText());
-        blueEdges = textToEdges(blueText.getText());
-        if(redEdges == null || blueEdges == null) return;
-        size = redEdges.length;
-        if(size != blueEdges.length){
-            message.setText("Matrices must be the same size.");
+    private char stringToColor(String colorString){
+        if(colorString.isEmpty()) return ' ';
+        return Character.toLowerCase(colorString.charAt(0));
+    }
+    
+    /**
+     * Updates the ending node choices available in edgeEnd.
+     */
+    private void updateEndChoices(){
+        // TODO keep previous selection if valid
+        char startColor = stringToColor((String) moveColor.getSelectedItem());
+        edgeEnd.removeAllItems();
+        if(edgeStart.getItemCount() == 0){
+            return;
         }
-        else{
-            bush = new Hackenbush(size, redEdges, blueEdges);
-            hackenbushDisplay.hackenbush = bush;
-            hackenbushDisplay.repaint();
+        int startPt = (int) edgeStart.getSelectedItem();
+        Integer[] endingPts = availableMovesAtNode(startColor, startPt);
+        for(Integer point: endingPts){
+            edgeEnd.addItem(point);
         }
+        if(endingPts.length > 0){
+            edgeEnd.setSelectedIndex(0);
+        }
+        edgeEnd.setEnabled(endingPts.length != 0);
+        move.setEnabled(endingPts.length != 0);
+    }
+    
+    /**
+     * Updates the graph and text to reflect current data.
+     */
+    private void updateGUI(){
+        hackenbushDisplay.repaint();
         redText.setText(edgesToText(bush.getEdges('r')));
         blueText.setText(edgesToText(bush.getEdges('b')));
+        updateStartChoices();
+        updateEndChoices();
         printState();
+    }
+    
+    /**
+     * Updates the list of starting nodes available in edgeStart.
+     */
+    private void updateStartChoices(){
+        // TODO keep previous selection if valid
+        char startColor = stringToColor((String) moveColor.getSelectedItem());
+        Integer[] startingPts = availableMoves(startColor);
+        edgeStart.removeAllItems();
+        for(Integer point: startingPts){
+            edgeStart.addItem(point);
+        }
+        boolean haveChoices = (startingPts.length > 0);
+        if(haveChoices){
+            edgeStart.setSelectedIndex(0);
+        }
+        edgeStart.setEnabled(haveChoices);
+        edgeEnd.setEnabled(haveChoices);
+        move.setEnabled(haveChoices);
     }
 }

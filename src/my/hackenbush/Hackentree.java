@@ -93,11 +93,12 @@ public class Hackentree extends Hackenbush{
      */
     @Override
     public String gameState(char lastMove){
-        if(isTree){
-            return root.printGameValue();
+        String message = super.gameState(lastMove);
+        if(isTree && !isWon){
+            return "Current game value is " + root.printGameValue();
         }
         else{
-            return super.gameState(lastMove);
+            return message;
         }
     }
 }

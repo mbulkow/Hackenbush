@@ -80,6 +80,11 @@ public class Hackenbush {
     */
     
     /**
+     * Keeps track of whether the game has been won.
+     */
+    protected boolean isWon;
+    
+    /**
      * Constructor.
      * 
      * @param size A nonnegative integer corresponding to the number of nodes
@@ -97,7 +102,7 @@ public class Hackenbush {
         this.size = size;
         nodesByHeight = new LinkedList[size];
         if(size != redEdges.length || size != blueEdges.length){
-            throw new IllegalArgumentException("Unequal sizes");
+            throw new IllegalArgumentException("Unequal sizes.");
         }
         for(int i = 0; i < size; i++){
             if(redEdges[i].length != size 
@@ -113,10 +118,11 @@ public class Hackenbush {
                 }
                 if(redEdges[i][j]<0 || blueEdges[i][j]<0){
                     throw new IllegalArgumentException(
-                            "Edge numbers must be positive");
+                            "Edge numbers must be positive.");
                 }
             }
         }
+        isWon = false;
         redGraph = redEdges;
         blueGraph = blueEdges;
         calculateHeights();
@@ -206,28 +212,34 @@ public class Hackenbush {
      * @return 
      */
     public String gameState(char lastMove){
+        isWon = false;
         boolean anyRed = false;
+        int numRed = 0;
         boolean anyBlue = false;
+        int numBlue = 0;
         for(int i=0; i<size; i++){
             for(int j = i; j<size; j++){
                 if(redGraph[i][j]>0){
                     anyRed = true;
+                    numRed += 1;
                 }
                 if(blueGraph[i][j]>0){
                     anyBlue = true;
+                    numBlue += 1;
                 }
                 if(anyRed && anyBlue){
                     return "The game is not yet won.";
                 }
             }
         }
+        isWon = true;
         if(anyRed){
-            return "Red has won.";
+            return "Red has won. \n Game value: " + -numRed;
         }
         if(anyBlue || lastMove == 'b'){
-            return "Blue has won.";
+            return "Blue has won. \n Game value: " + numBlue;
         }
-        return "Red has won";
+        return "Red has won. \n Game value: 0";
     }
     
     /**
@@ -266,7 +278,7 @@ public class Hackenbush {
      */
     public int[][] getNodeCoords(int canvasWidth, int canvasHeight){
         int[][] nodeCoords = new int[size][2];
-        if(size == 1){
+        if(maxHeight == 0){
             nodeCoords[0][0] = canvasWidth/2;
             nodeCoords[0][1] = canvasHeight;
             return nodeCoords;
@@ -377,7 +389,9 @@ public class Hackenbush {
         int[] edgesLost = cleanUpDetached();
         redEdgesLost += edgesLost[0];
         blueEdgesLost += edgesLost[1];
+        //return "This move removed " + redEdgesLost + " red sticks and " + 
+        //        blueEdgesLost + " blue sticks. \n" + gameState(color);
         return "This move removed " + redEdgesLost + " red sticks and " + 
-                blueEdgesLost + " blue sticks. " + gameState(color);
+                blueEdgesLost + " blue sticks.";
     };
 }
